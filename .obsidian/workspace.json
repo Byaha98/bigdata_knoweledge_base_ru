@@ -1,0 +1,209 @@
+{
+  "main": {
+    "id": "d12cdf5942f0140e",
+    "type": "split",
+    "children": [
+      {
+        "id": "c0b3698981ca425f",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "5cd4add47d78a229",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "7591075d0f7720d2",
+    "type": "split",
+    "children": [
+      {
+        "id": "7e8f2d494838112d",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "b1294b144ab3942d",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "b19e759b70e9f9d7",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "7c8c8dc0100732ce",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "edebdfff1efff473",
+    "type": "split",
+    "children": [
+      {
+        "id": "0ff46d21194579b7",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "4b66cb1095c83ea8",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Обзоры/Конфиги.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for Конфиги"
+            }
+          },
+          {
+            "id": "cb983442532ea37c",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Обзоры/Конфиги.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from Конфиги"
+            }
+          },
+          {
+            "id": "0f1e6adb9b5739e1",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "c4c8d6b057b8c1f2",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Обзоры/Конфиги.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of Конфиги"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "webpage-html-export:Export Vault to HTML": false,
+      "obsidian-git:Open Git source control": false
+    }
+  },
+  "active": "5cd4add47d78a229",
+  "lastOpenFiles": [
+    "README.md",
+    "README.MD",
+    "media/dags_guide_4.png",
+    "media/dags_guide_3.jpg",
+    "Обзоры/Как внедрить DAG'и dataCraft на проект.md",
+    "Обзоры/DAG'и.md",
+    "Обзоры/Конфиги.md",
+    "Обзоры/Дебаггинг DAG'ов.md",
+    "Обзоры/Airflow-провайдеры.md",
+    "DAG'и/static_table_dag.md",
+    "Обзоры/Пакет dbt.md",
+    "Обзоры/Принцип работы DAG'ов.md",
+    "Обзоры/Сборка и тестирование пакетов.md",
+    "Обзоры/Термины и определения.md",
+    "Конфиги/presets.md",
+    "DAG'и/template_configs.md",
+    "DAG'и/sync_data.md",
+    "DAG'и/install_connectors.md",
+    "DAG'и/init_dag.md",
+    "DAG'и/generate_models.md",
+    "DAG'и/generate_macros.md",
+    "DAG'и/for_datacraft.md",
+    "DAG'и/dbt_run.md",
+    "DAG'и/DagBuilder.md",
+    "DAG'и/create_connections.md",
+    "Обзоры/Коннекторы.md",
+    "Конфиги/datasets.md",
+    "Конфиги/connectors.md",
+    "media/dags_guide1 1.png",
+    "media/dags_guide2.png",
+    "media/dags_guide1.png",
+    "media/debugging_tutorial1_2.png",
+    "media/debugging_tutorial1_1.png",
+    "media/debugging_tutorial.png",
+    "media/create_connections_mapped_tasks_example.png",
+    "media/12.png",
+    "Служебное. Вложения"
+  ]
+}
