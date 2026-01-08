@@ -801,7 +801,7 @@ ORDER BY user_id;
 
   
 
--- Результат: {click: 2, view: 1, purchase: 1} для user_id=1
+-- Результат: {click: 1, view: 1, purchase: 1} для user_id=1
 ```
 
 ![[poligon_clickhouse_functions_11.png]]
