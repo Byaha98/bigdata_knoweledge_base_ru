@@ -727,7 +727,10 @@ GROUP BY user_id;
 ```
 ![[poligon_clickhouse_functions_10.png]]
 
-В запросе также есть еще один примечательный момент - Работа с массивами внутри JSON! В CTE разворачиваем JSON-массив events_json в строки (помним про вертикальную колбаску!) через ARRAY JOIN JSONExtractArrayRaw(events_json) AS event_json.
+В запросе также есть еще один примечательный момент - Работа с массивами внутри JSON! event_json — это алиас (псевдоним), созданный в ARRAY JOIN для каждого элемента JSON-массива.
+
+
+В CTE разворачиваем JSON-массив events_json в строки (помним про вертикальную колбаску!) через ARRAY JOIN JSONExtractArrayRaw(events_json) AS event_json.
 
 
 В основном запросе группируем по user_id, собираем все числовые значения событий пользователя в массив event_values. Потом считаем сумму всех значений событий пользователя (total_value) и среднее значение событий пользователя (avg_value).
