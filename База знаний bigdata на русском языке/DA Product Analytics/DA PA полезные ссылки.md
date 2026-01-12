@@ -34,3 +34,7 @@ https://youtu.be/z9CO-WRiREI
 
 https://youtu.be/-RIyOrcPgcM
 
+# 3 Роадмап для начинающих аналитиков данных
+
+https://t.me/lines_of_c0de/145
+
