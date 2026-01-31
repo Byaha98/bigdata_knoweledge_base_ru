@@ -191,13 +191,13 @@ export function absoluteHref(basePath: string, targetSlug: FullSlug, anchor = ""
   return basePath + "/" + trail + anchor
 }
 
-// Путь от страницы до корня. Страницы эмитятся как slug/index.html — на 1 уровень глубже.
+// Путь от страницы до корня. При F5 URL часто без index.html — браузер считает базой родителя пути, поэтому берём segments.length (не +1).
 export function pathToRoot(slug: FullSlug): RelativeURL {
   const segments = slug.split("/").filter((x) => x !== "")
   if (slug === "index" || segments.length === 0) {
     return "." as RelativeURL
   }
-  const rootPath = Array(segments.length + 1)
+  const rootPath = Array(segments.length)
     .fill("..")
     .join("/")
   return rootPath as RelativeURL
