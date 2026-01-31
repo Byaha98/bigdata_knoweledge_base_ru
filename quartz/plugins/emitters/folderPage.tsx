@@ -13,6 +13,7 @@ import {
   joinSegments,
   pathToRoot,
   simplifySlug,
+  transliterateForPath,
 } from "../../util/path"
 import { defaultListPageLayout, sharedPageComponents } from "../../../quartz.layout"
 import { FolderContent } from "../../components"
@@ -36,9 +37,10 @@ async function* processFolderInfo(
     ProcessedContent,
   ][]) {
     const slug = joinSegments(folder, "index") as FullSlug
+    const slugPath = transliterateForPath(slug)
     const [tree, file] = folderContent
     const cfg = ctx.cfg.configuration
-    const externalResources = pageResources(pathToRoot(slug), resources)
+    const externalResources = pageResources(pathToRoot(slugPath), resources)
     const componentData: QuartzComponentProps = {
       ctx,
       fileData: file.data,
@@ -49,7 +51,7 @@ async function* processFolderInfo(
       allFiles,
     }
 
-    const content = renderPage(cfg, slug, componentData, opts, externalResources)
+    const content = renderPage(cfg, slugPath, componentData, opts, externalResources)
     yield write({
       ctx,
       content,

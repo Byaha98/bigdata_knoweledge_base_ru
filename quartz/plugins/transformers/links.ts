@@ -8,6 +8,7 @@ import {
   simplifySlug,
   splitAnchor,
   transformLink,
+  transliterateForPath,
 } from "../../util/path"
 import path from "path"
 import { visit } from "unist-util-visit"
@@ -103,11 +104,16 @@ export const CrawlLinks: QuartzTransformerPlugin<Partial<Options>> = (userOpts) 
                   isAbsoluteUrl(dest, { httpOnly: false }) || dest.startsWith("#")
                 )
                 if (isInternal) {
-                  dest = node.properties.href = transformLink(
+                  dest = transformLink(
                     file.data.slug!,
                     dest,
                     transformOptions,
                   )
+                  // Пути в href — транслит (файлы отдаются по транслитерированным путям)
+                  const [pathPart, anchorPart] = dest.includes("#")
+                    ? [dest.split("#")[0], "#" + dest.split("#").slice(1).join("#")]
+                    : [dest, ""]
+                  node.properties.href = transliterateForPath(pathPart) + anchorPart
 
                   // url.resolve is considered legacy
                   // WHATWG equivalent https://nodejs.dev/en/api/v18/url/#urlresolvefrom-to
@@ -122,7 +128,7 @@ export const CrawlLinks: QuartzTransformerPlugin<Partial<Options>> = (userOpts) 
                   const full = decodeURIComponent(stripSlashes(destCanonical, true)) as FullSlug
                   const simple = simplifySlug(full)
                   outgoing.add(simple)
-                  node.properties["data-slug"] = full
+                  node.properties["data-slug"] = transliterateForPath(full)
                 }
 
                 // rewrite link internals if prettylinks is on

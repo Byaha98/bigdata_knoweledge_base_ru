@@ -5,7 +5,7 @@ import HeaderConstructor from "../../components/Header"
 import BodyConstructor from "../../components/Body"
 import { pageResources, renderPage } from "../../components/renderPage"
 import { FullPageLayout } from "../../cfg"
-import { pathToRoot } from "../../util/path"
+import { pathToRoot, transliterateForPath } from "../../util/path"
 import { defaultContentPageLayout, sharedPageComponents } from "../../../quartz.layout"
 import { Content } from "../../components"
 import { styleText } from "util"
@@ -24,8 +24,9 @@ async function processContent(
   resources: StaticResources,
 ) {
   const slug = fileData.slug!
+  const slugPath = transliterateForPath(slug)
   const cfg = ctx.cfg.configuration
-  const externalResources = pageResources(pathToRoot(slug), resources)
+  const externalResources = pageResources(pathToRoot(slugPath), resources)
   const componentData: QuartzComponentProps = {
     ctx,
     fileData,
@@ -36,7 +37,7 @@ async function processContent(
     allFiles,
   }
 
-  const content = renderPage(cfg, slug, componentData, opts, externalResources)
+  const content = renderPage(cfg, slugPath, componentData, opts, externalResources)
   return write({
     ctx,
     content,

@@ -1,7 +1,7 @@
 import path from "path"
 import fs from "fs"
 import { BuildCtx } from "../../util/ctx"
-import { FilePath, FullSlug, joinSegments } from "../../util/path"
+import { FilePath, FullSlug, joinSegments, transliterateForPath } from "../../util/path"
 import { Readable } from "stream"
 
 type WriteOptions = {
@@ -12,11 +12,13 @@ type WriteOptions = {
 }
 
 export const write = async ({ ctx, slug, ext, content }: WriteOptions): Promise<FilePath> => {
+  // Пути в public — только транслит (URL-safe на любом хостинге)
+  const slugPath = transliterateForPath(slug)
   // GitHub Pages и др. хостинги отдают index.html по запросу к папке — эмитим slug/index.html для чистых URL
   const filePath =
-    ext === ".html" && slug !== "index"
-      ? (joinSegments(slug, "index.html") as FilePath)
-      : (slug + ext) as FilePath
+    ext === ".html" && slugPath !== "index"
+      ? (joinSegments(slugPath, "index.html") as FilePath)
+      : (slugPath + ext) as FilePath
   const pathToPage = joinSegments(ctx.argv.output, filePath) as FilePath
   const dir = path.dirname(pathToPage)
   await fs.promises.mkdir(dir, { recursive: true })

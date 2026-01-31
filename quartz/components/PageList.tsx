@@ -1,4 +1,4 @@
-import { FullSlug, isFolderPath, resolveRelative } from "../util/path"
+import { FullSlug, isFolderPath, resolveRelative, transliterateForPath } from "../util/path"
 import { QuartzPluginData } from "../plugins/vfile"
 import { Date, getDate } from "./Date"
 import { QuartzComponent, QuartzComponentProps } from "./types"
@@ -78,7 +78,7 @@ export const PageList: QuartzComponent = ({ cfg, fileData, allFiles, limit, sort
               </p>
               <div class="desc">
                 <h3>
-                  <a href={resolveRelative(fileData.slug!, page.slug!)} class="internal">
+                  <a href={resolveRelative(transliterateForPath(fileData.slug!) as FullSlug, transliterateForPath(page.slug!) as FullSlug)} class="internal">
                     {title}
                   </a>
                 </h3>
@@ -88,7 +88,7 @@ export const PageList: QuartzComponent = ({ cfg, fileData, allFiles, limit, sort
                   <li>
                     <a
                       class="internal tag-link"
-                      href={resolveRelative(fileData.slug!, `tags/${tag}` as FullSlug)}
+                      href={resolveRelative(transliterateForPath(fileData.slug!) as FullSlug, transliterateForPath(`tags/${tag}`) as FullSlug)}
                     >
                       {tag}
                     </a>
