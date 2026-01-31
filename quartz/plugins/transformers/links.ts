@@ -127,7 +127,7 @@ export const CrawlLinks: QuartzTransformerPlugin<Partial<Options>> = (userOpts) 
                   // need to decodeURIComponent here as WHATWG URL percent-encodes everything
                   const full = decodeURIComponent(stripSlashes(destCanonical, true)) as FullSlug
                   const simple = simplifySlug(full)
-                  outgoing.add(simple)
+                  outgoing.add(transliterateForPath(simple) as SimpleSlug)
                   node.properties["data-slug"] = transliterateForPath(full)
                 }
 

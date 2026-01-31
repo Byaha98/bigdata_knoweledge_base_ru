@@ -255,14 +255,14 @@ export function transformLink(src: FullSlug, target: string, opts: TransformOpti
     let [targetCanonical, targetAnchor] = splitAnchor(canonicalSlug)
 
     if (opts.strategy === "shortest") {
-      // if the file name is unique, then it's just the filename
+      // allSlugs уже в транслите; цель из контента может быть кириллической
+      const targetCanonicalTr = transliterateForPath(targetCanonical)
       const matchingFileNames = opts.allSlugs.filter((slug) => {
         const parts = slug.split("/")
         const fileName = parts.at(-1)
-        return targetCanonical === fileName
+        return targetCanonicalTr === fileName || targetCanonical === fileName
       })
 
-      // only match, just use it
       if (matchingFileNames.length === 1) {
         const targetSlug = matchingFileNames[0]
         const pageTail = getFileExtension(targetCanonical) ? "" : "/"
@@ -270,9 +270,10 @@ export function transformLink(src: FullSlug, target: string, opts: TransformOpti
       }
     }
 
-    // if it's not unique, then it's the absolute path from the vault root
+    // путь в href — всегда в транслите (файлы отдаются по транслитерированным путям)
+    const canonicalTr = transliterateForPath(canonicalSlug)
     const pageTail = getFileExtension(canonicalSlug) ? "" : "/"
-    return (joinSegments(pathToRoot(src), canonicalSlug) + pageTail + targetAnchor) as RelativeURL
+    return (joinSegments(pathToRoot(src), canonicalTr) + pageTail + targetAnchor) as RelativeURL
   }
 }
 

@@ -519,31 +519,73 @@ p {
 
 .table-container {
   overflow-x: auto;
+  margin: 1.5rem 0;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--gray) 25%, transparent);
+  border: 1px solid var(--lightgray);
 
   & > table {
-    margin: 1rem;
-    padding: 1.5rem;
+    width: 100%;
+    margin: 0;
+    padding: 0;
     border-collapse: collapse;
+    background: var(--light);
 
     th,
     td {
       min-width: 75px;
+      padding: 0.6rem 1rem;
+      vertical-align: top;
+    }
+
+    thead th {
+      background: color-mix(in srgb, var(--secondary) 12%, var(--light));
+      font-weight: $semiBoldWeight;
+      color: var(--darkgray);
+      border-bottom: 2px solid var(--secondary);
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--lightgray);
+      transition: background 0.15s ease;
+
+      &:hover {
+        background: color-mix(in srgb, var(--highlight) 80%, transparent);
+      }
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+
+    tbody td:first-child {
+      font-weight: $semiBoldWeight;
+
+      a.internal {
+        display: inline-block;
+        padding: 0.15rem 0;
+      }
+    }
+
+    tbody td:last-child {
+      color: var(--gray);
+      font-size: 0.95em;
     }
 
     & > * {
-      line-height: 2rem;
+      line-height: 1.5rem;
     }
   }
 }
 
 th {
   text-align: left;
-  padding: 0.4rem 0.7rem;
+  padding: 0.6rem 1rem;
   border-bottom: 2px solid var(--gray);
 }
 
 td {
-  padding: 0.2rem 0.7rem;
+  padding: 0.4rem 1rem;
 }
 
 tr {

@@ -1,4 +1,4 @@
-import { FullSlug, isRelativeURL, resolveRelative, simplifySlug } from "../../util/path"
+import { FullSlug, isRelativeURL, resolveRelative, simplifySlug, transliterateForPath } from "../../util/path"
 import { QuartzEmitterPlugin } from "../types"
 import { write } from "./helpers"
 import { BuildCtx } from "../../util/ctx"
@@ -15,7 +15,10 @@ async function* processFile(ctx: BuildCtx, file: VFile) {
         : aliasTarget
     ) as FullSlug
 
-    const redirUrl = resolveRelative(aliasTargetSlug, ogSlug)
+    const redirUrl = resolveRelative(
+      transliterateForPath(aliasTargetSlug) as FullSlug,
+      transliterateForPath(ogSlug) as FullSlug,
+    )
     yield write({
       ctx,
       content: `
