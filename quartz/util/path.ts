@@ -191,6 +191,13 @@ export function absoluteHref(basePath: string, targetSlug: FullSlug, anchor = ""
   return basePath + "/" + trail + anchor
 }
 
+/** Полный URL для ссылки (origin + path). Нужен для breadcrumbs на GitHub Pages, чтобы переход по уровням не давал 404. */
+export function fullHref(baseUrl: string | undefined, basePath: string, targetSlug: FullSlug, anchor = ""): string {
+  if (!basePath || !baseUrl) return absoluteHref(basePath, targetSlug, anchor)
+  const origin = "https://" + baseUrl.replace(/^https?:\/\//, "").split("/")[0]
+  return origin + absoluteHref(basePath, targetSlug, anchor)
+}
+
 // Путь от страницы до корня. При F5 URL часто без index.html — браузер считает базой родителя пути, поэтому берём segments.length (не +1).
 export function pathToRoot(slug: FullSlug): RelativeURL {
   const segments = slug.split("/").filter((x) => x !== "")

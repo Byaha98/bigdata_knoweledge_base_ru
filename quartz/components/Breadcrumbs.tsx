@@ -1,6 +1,6 @@
 import { QuartzComponent, QuartzComponentConstructor, QuartzComponentProps } from "./types"
 import breadcrumbsStyle from "./styles/breadcrumbs.scss"
-import { FullSlug, SimpleSlug, resolveRelative, simplifySlug, transliterateForPath, getBasePath, absoluteHref } from "../util/path"
+import { FullSlug, SimpleSlug, resolveRelative, simplifySlug, transliterateForPath, getBasePath, fullHref } from "../util/path"
 import { classNames } from "../util/lang"
 import { trieFromAllFiles } from "../util/ctx"
 
@@ -40,10 +40,11 @@ function formatCrumb(
   baseSlug: FullSlug,
   currentSlug: SimpleSlug,
   basePath: string,
+  baseUrl: string | undefined,
 ): CrumbData {
   const cur = transliterateForPath(currentSlug) as FullSlug
   const path = basePath
-    ? absoluteHref(basePath, cur, "")
+    ? fullHref(baseUrl, basePath, cur, "")
     : resolveRelative(transliterateForPath(baseSlug) as FullSlug, cur)
   return { displayName: displayName.replaceAll("-", " "), path }
 }
@@ -61,13 +62,14 @@ export default ((opts?: Partial<BreadcrumbOptions>) => {
     const slugParts = fileData.slug!.split("/")
     const pathNodes = trie.ancestryChain(slugParts)
     const basePath = getBasePath(cfg.baseUrl)
+    const baseUrl = cfg.baseUrl
 
     if (!pathNodes) {
       return null
     }
 
     const crumbs: CrumbData[] = pathNodes.map((node, idx) => {
-      const crumb = formatCrumb(node.displayName, fileData.slug!, simplifySlug(node.slug), basePath)
+      const crumb = formatCrumb(node.displayName, fileData.slug!, simplifySlug(node.slug), basePath, baseUrl)
       if (idx === 0) {
         crumb.displayName = options.rootName
       }
