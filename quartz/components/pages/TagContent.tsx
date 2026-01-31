@@ -1,7 +1,7 @@
 import { QuartzComponent, QuartzComponentConstructor, QuartzComponentProps } from "../types"
 import style from "../styles/listPage.scss"
 import { PageList, SortFn } from "../PageList"
-import { FullSlug, getAllSegmentPrefixes, resolveRelative, simplifySlug, transliterateForPath } from "../../util/path"
+import { FullSlug, getAllSegmentPrefixes, resolveRelative, simplifySlug, transliterateForPath, getBasePath, absoluteHref } from "../../util/path"
 import { QuartzPluginData } from "../../plugins/vfile"
 import { Root } from "hast"
 import { htmlToJsx } from "../../util/jsx"
@@ -24,6 +24,9 @@ export default ((opts?: Partial<TagContentOptions>) => {
   const TagContent: QuartzComponent = (props: QuartzComponentProps) => {
     const { tree, fileData, allFiles, cfg } = props
     const slug = fileData.slug
+    const basePath = getBasePath(cfg.baseUrl)
+    const href = (target: FullSlug) =>
+      basePath ? absoluteHref(basePath, target, "") : resolveRelative(transliterateForPath(fileData.slug!) as FullSlug, target)
 
     if (!(slug?.startsWith("tags/") || slug === "tags")) {
       throw new Error(`Component "TagContent" tried to render a non-tag page: ${slug}`)
@@ -75,12 +78,12 @@ export default ((opts?: Partial<TagContentOptions>) => {
                   : htmlToJsx(contentPage.filePath!, root)
 
               const tagListingPage = `/tags/${tag}` as FullSlug
-              const href = resolveRelative(transliterateForPath(fileData.slug!) as FullSlug, transliterateForPath(tagListingPage) as FullSlug)
+              const linkHref = href(transliterateForPath(tagListingPage) as FullSlug)
 
               return (
                 <div>
                   <h2>
-                    <a class="internal tag-link" href={href}>
+                    <a class="internal tag-link" href={linkHref}>
                       {tag}
                     </a>
                   </h2>

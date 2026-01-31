@@ -1,6 +1,6 @@
 import { QuartzComponent, QuartzComponentConstructor, QuartzComponentProps } from "./types"
 import style from "./styles/backlinks.scss"
-import { FullSlug, resolveRelative, simplifySlug, transliterateForPath } from "../util/path"
+import { FullSlug, resolveRelative, simplifySlug, transliterateForPath, getBasePath, absoluteHref } from "../util/path"
 import { i18n } from "../i18n"
 import { classNames } from "../util/lang"
 import OverflowListFactory from "./OverflowList"
@@ -25,6 +25,9 @@ export default ((opts?: Partial<BacklinksOptions>) => {
   }: QuartzComponentProps) => {
     const slug = simplifySlug(fileData.slug!)
     const backlinkFiles = allFiles.filter((file) => file.links?.includes(slug))
+    const basePath = getBasePath(cfg.baseUrl)
+    const href = (target: FullSlug) =>
+      basePath ? absoluteHref(basePath, target, "") : resolveRelative(transliterateForPath(fileData.slug!) as FullSlug, target)
     if (options.hideWhenEmpty && backlinkFiles.length == 0) {
       return null
     }
@@ -35,7 +38,7 @@ export default ((opts?: Partial<BacklinksOptions>) => {
           {backlinkFiles.length > 0 ? (
             backlinkFiles.map((f) => (
               <li>
-                <a href={resolveRelative(transliterateForPath(fileData.slug!) as FullSlug, transliterateForPath(f.slug!) as FullSlug)} class="internal">
+                <a href={href(transliterateForPath(f.slug!) as FullSlug)} class="internal">
                   {f.frontmatter?.title}
                 </a>
               </li>

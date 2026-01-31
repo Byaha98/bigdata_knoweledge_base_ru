@@ -175,6 +175,22 @@ export function normalizeHastElement(rawEl: HastElement, curBase: FullSlug, newB
   return el
 }
 
+/** Базовый путь из baseUrl (для GitHub Pages project site: /repo_name). Пустая строка, если сайт в корне. */
+export function getBasePath(baseUrl: string | undefined): string {
+  if (!baseUrl) return ""
+  const url = baseUrl.replace(/^https?:\/\//, "")
+  const pathname = new URL("https://" + url).pathname
+  return pathname === "/" ? "" : pathname
+}
+
+/** Абсолютный href от корня сайта (для project site — с basePath). */
+export function absoluteHref(basePath: string, targetSlug: FullSlug, anchor = ""): string {
+  if (!basePath) return ""
+  const path = transliterateForPath(targetSlug).replace(/\/index$/, "").replace(/^\/+/, "").replace(/\/+$/, "")
+  const trail = path ? path + "/" : ""
+  return basePath + "/" + trail + anchor
+}
+
 // Путь от страницы до корня. Страницы эмитятся как slug/index.html — на 1 уровень глубже.
 export function pathToRoot(slug: FullSlug): RelativeURL {
   const segments = slug.split("/").filter((x) => x !== "")

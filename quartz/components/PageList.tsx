@@ -1,4 +1,4 @@
-import { FullSlug, isFolderPath, resolveRelative, transliterateForPath } from "../util/path"
+import { FullSlug, isFolderPath, resolveRelative, transliterateForPath, getBasePath, absoluteHref } from "../util/path"
 import { QuartzPluginData } from "../plugins/vfile"
 import { Date, getDate } from "./Date"
 import { QuartzComponent, QuartzComponentProps } from "./types"
@@ -63,6 +63,9 @@ export const PageList: QuartzComponent = ({ cfg, fileData, allFiles, limit, sort
   if (limit) {
     list = list.slice(0, limit)
   }
+  const basePath = getBasePath(cfg.baseUrl)
+  const href = (target: FullSlug) =>
+    basePath ? absoluteHref(basePath, target, "") : resolveRelative(transliterateForPath(fileData.slug!) as FullSlug, target)
 
   return (
     <ul class="section-ul">
@@ -78,7 +81,7 @@ export const PageList: QuartzComponent = ({ cfg, fileData, allFiles, limit, sort
               </p>
               <div class="desc">
                 <h3>
-                  <a href={resolveRelative(transliterateForPath(fileData.slug!) as FullSlug, transliterateForPath(page.slug!) as FullSlug)} class="internal">
+                  <a href={href(transliterateForPath(page.slug!) as FullSlug)} class="internal">
                     {title}
                   </a>
                 </h3>
@@ -88,7 +91,7 @@ export const PageList: QuartzComponent = ({ cfg, fileData, allFiles, limit, sort
                   <li>
                     <a
                       class="internal tag-link"
-                      href={resolveRelative(transliterateForPath(fileData.slug!) as FullSlug, transliterateForPath(`tags/${tag}`) as FullSlug)}
+                      href={href(transliterateForPath(`tags/${tag}`) as FullSlug)}
                     >
                       {tag}
                     </a>

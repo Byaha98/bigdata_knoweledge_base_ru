@@ -79,12 +79,21 @@ function toggleFolder(evt: MouseEvent) {
   localStorage.setItem("fileTree", stringifiedFileTree)
 }
 
+function buildHref(currentSlug: FullSlug, targetSlug: FullSlug): string {
+  const basePath = document.body.dataset.basePath ?? ""
+  if (basePath) {
+    const path = targetSlug.replace(/\/index$/, "").replace(/^\/+/, "").replace(/\/+$/, "")
+    return basePath + "/" + (path ? path + "/" : "")
+  }
+  return resolveRelative(currentSlug, targetSlug)
+}
+
 function createFileNode(currentSlug: FullSlug, node: FileTrieNode): HTMLLIElement {
   const template = document.getElementById("template-file") as HTMLTemplateElement
   const clone = template.content.cloneNode(true) as DocumentFragment
   const li = clone.querySelector("li") as HTMLLIElement
   const a = li.querySelector("a") as HTMLAnchorElement
-  a.href = resolveRelative(currentSlug, node.slug)
+  a.href = buildHref(currentSlug, node.slug)
   a.dataset.for = node.slug
   a.textContent = node.displayName
 
@@ -119,7 +128,7 @@ function createFolderNode(
     // Replace button with link for link behavior
     const button = titleContainer.querySelector(".folder-button") as HTMLElement
     const a = document.createElement("a")
-    a.href = resolveRelative(currentSlug, folderPath)
+    a.href = buildHref(currentSlug, folderPath)
     a.dataset.for = folderPath
     a.className = "folder-title"
     a.textContent = node.displayName

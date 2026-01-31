@@ -1,5 +1,5 @@
 import { QuartzComponent, QuartzComponentConstructor, QuartzComponentProps } from "./types"
-import { FullSlug, SimpleSlug, resolveRelative, transliterateForPath } from "../util/path"
+import { FullSlug, SimpleSlug, resolveRelative, transliterateForPath, getBasePath, absoluteHref } from "../util/path"
 import { QuartzPluginData } from "../plugins/vfile"
 import { byDateAndAlphabetical } from "./PageList"
 import style from "./styles/recentNotes.scss"
@@ -35,6 +35,9 @@ export default ((userOpts?: Partial<Options>) => {
     const opts = { ...defaultOptions(cfg), ...userOpts }
     const pages = allFiles.filter(opts.filter).sort(opts.sort)
     const remaining = Math.max(0, pages.length - opts.limit)
+    const basePath = getBasePath(cfg.baseUrl)
+    const href = (target: FullSlug) =>
+      basePath ? absoluteHref(basePath, target, "") : resolveRelative(transliterateForPath(fileData.slug!) as FullSlug, target)
     return (
       <div class={classNames(displayClass, "recent-notes")}>
         <h3>{opts.title ?? i18n(cfg.locale).components.recentNotes.title}</h3>
@@ -48,7 +51,7 @@ export default ((userOpts?: Partial<Options>) => {
                 <div class="section">
                   <div class="desc">
                     <h3>
-                      <a href={resolveRelative(transliterateForPath(fileData.slug!) as FullSlug, transliterateForPath(page.slug!) as FullSlug)} class="internal">
+                      <a href={href(transliterateForPath(page.slug!) as FullSlug)} class="internal">
                         {title}
                       </a>
                     </h3>
@@ -64,7 +67,7 @@ export default ((userOpts?: Partial<Options>) => {
                         <li>
                           <a
                             class="internal tag-link"
-                            href={resolveRelative(transliterateForPath(fileData.slug!) as FullSlug, transliterateForPath(`tags/${tag}`) as FullSlug)}
+                            href={href(transliterateForPath(`tags/${tag}`) as FullSlug)}
                           >
                             {tag}
                           </a>
@@ -79,7 +82,7 @@ export default ((userOpts?: Partial<Options>) => {
         </ul>
         {opts.linkToMore && remaining > 0 && (
           <p>
-            <a href={resolveRelative(transliterateForPath(fileData.slug!) as FullSlug, transliterateForPath(opts.linkToMore) as FullSlug)}>
+            <a href={href(transliterateForPath(opts.linkToMore) as FullSlug)}>
               {i18n(cfg.locale).components.recentNotes.seeRemainingMore({ remaining })}
             </a>
           </p>

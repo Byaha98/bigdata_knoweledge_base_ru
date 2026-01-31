@@ -1,6 +1,6 @@
 import { QuartzComponent, QuartzComponentConstructor, QuartzComponentProps } from "./types"
 import breadcrumbsStyle from "./styles/breadcrumbs.scss"
-import { FullSlug, SimpleSlug, resolveRelative, simplifySlug, transliterateForPath } from "../util/path"
+import { FullSlug, SimpleSlug, resolveRelative, simplifySlug, transliterateForPath, getBasePath, absoluteHref } from "../util/path"
 import { classNames } from "../util/lang"
 import { trieFromAllFiles } from "../util/ctx"
 
@@ -35,11 +35,17 @@ const defaultOptions: BreadcrumbOptions = {
   showCurrentPage: true,
 }
 
-function formatCrumb(displayName: string, baseSlug: FullSlug, currentSlug: SimpleSlug): CrumbData {
-  return {
-    displayName: displayName.replaceAll("-", " "),
-    path: resolveRelative(transliterateForPath(baseSlug) as FullSlug, transliterateForPath(currentSlug) as FullSlug),
-  }
+function formatCrumb(
+  displayName: string,
+  baseSlug: FullSlug,
+  currentSlug: SimpleSlug,
+  basePath: string,
+): CrumbData {
+  const cur = transliterateForPath(currentSlug) as FullSlug
+  const path = basePath
+    ? absoluteHref(basePath, cur, "")
+    : resolveRelative(transliterateForPath(baseSlug) as FullSlug, cur)
+  return { displayName: displayName.replaceAll("-", " "), path }
 }
 
 export default ((opts?: Partial<BreadcrumbOptions>) => {
@@ -49,17 +55,19 @@ export default ((opts?: Partial<BreadcrumbOptions>) => {
     allFiles,
     displayClass,
     ctx,
+    cfg,
   }: QuartzComponentProps) => {
     const trie = (ctx.trie ??= trieFromAllFiles(allFiles))
     const slugParts = fileData.slug!.split("/")
     const pathNodes = trie.ancestryChain(slugParts)
+    const basePath = getBasePath(cfg.baseUrl)
 
     if (!pathNodes) {
       return null
     }
 
     const crumbs: CrumbData[] = pathNodes.map((node, idx) => {
-      const crumb = formatCrumb(node.displayName, fileData.slug!, simplifySlug(node.slug))
+      const crumb = formatCrumb(node.displayName, fileData.slug!, simplifySlug(node.slug), basePath)
       if (idx === 0) {
         crumb.displayName = options.rootName
       }

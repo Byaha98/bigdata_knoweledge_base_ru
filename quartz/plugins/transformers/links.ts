@@ -9,6 +9,8 @@ import {
   splitAnchor,
   transformLink,
   transliterateForPath,
+  getBasePath,
+  absoluteHref,
 } from "../../util/path"
 import path from "path"
 import { visit } from "unist-util-visit"
@@ -109,26 +111,27 @@ export const CrawlLinks: QuartzTransformerPlugin<Partial<Options>> = (userOpts) 
                     dest,
                     transformOptions,
                   )
-                  // Пути в href — транслит (файлы отдаются по транслитерированным путям)
                   const [pathPart, anchorPart] = dest.includes("#")
                     ? [dest.split("#")[0], "#" + dest.split("#").slice(1).join("#")]
                     : [dest, ""]
-                  node.properties.href = transliterateForPath(pathPart) + anchorPart
 
                   // url.resolve is considered legacy
-                  // WHATWG equivalent https://nodejs.dev/en/api/v18/url/#urlresolvefrom-to
                   const url = new URL(dest, "https://base.com/" + stripSlashes(curSlug, true))
                   const canonicalDest = url.pathname
                   let [destCanonical, _destAnchor] = splitAnchor(canonicalDest)
                   if (destCanonical.endsWith("/")) {
                     destCanonical += "index"
                   }
-
-                  // need to decodeURIComponent here as WHATWG URL percent-encodes everything
                   const full = decodeURIComponent(stripSlashes(destCanonical, true)) as FullSlug
                   const simple = simplifySlug(full)
                   outgoing.add(transliterateForPath(simple) as SimpleSlug)
                   node.properties["data-slug"] = transliterateForPath(full)
+
+                  // GitHub Pages project site: href с basePath, иначе относительный путь в транслите
+                  const basePath = getBasePath(ctx.cfg.configuration.baseUrl)
+                  node.properties.href = basePath
+                    ? absoluteHref(basePath, full, anchorPart)
+                    : transliterateForPath(pathPart) + anchorPart
                 }
 
                 // rewrite link internals if prettylinks is on
