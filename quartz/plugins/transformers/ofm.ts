@@ -22,8 +22,12 @@ import checkboxScript from "../../components/scripts/checkbox.inline"
 // @ts-ignore
 import mermaidScript from "../../components/scripts/mermaid.inline"
 import mermaidStyle from "../../components/styles/mermaid.inline.scss"
-import { FilePath, pathToRoot, slugTag, slugifyFilePath } from "../../util/path"
+import { FilePath, FullSlug, pathToRoot, slugTag, slugifyFilePath } from "../../util/path"
 import { toHast } from "mdast-util-to-hast"
+
+// slug папки вложений Obsidian → подменяем на ASCII в URL (кириллица даёт 404 на хостингах)
+const ATTACHMENTS_SLUG_PREFIX = "Служебное.-Вложения/"
+const ATTACHMENTS_URL_PREFIX = "attachments/"
 import { toHtml } from "hast-util-to-html"
 import { capitalize } from "../../util/lang"
 import { PluggableList } from "unified"
@@ -229,7 +233,10 @@ export const ObsidianFlavoredMarkdown: QuartzTransformerPlugin<Partial<Options>>
                 // embed cases
                 if (value.startsWith("!")) {
                   const ext: string = path.extname(fp).toLowerCase()
-                  const url = slugifyFilePath(fp as FilePath)
+                  let url = slugifyFilePath(fp as FilePath)
+                  if (url.startsWith(ATTACHMENTS_SLUG_PREFIX)) {
+                    url = (ATTACHMENTS_URL_PREFIX + url.slice(ATTACHMENTS_SLUG_PREFIX.length)) as FullSlug
+                  }
                   if ([".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg", ".webp"].includes(ext)) {
                     const match = wikilinkImageEmbedRegex.exec(alias ?? "")
                     const alt = match?.groups?.alt ?? ""

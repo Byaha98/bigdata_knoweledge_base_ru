@@ -6,6 +6,10 @@ import { glob } from "../../util/glob"
 import { Argv } from "../../util/ctx"
 import { QuartzConfig } from "../../cfg"
 
+// Папка вложений Obsidian → ASCII-имя в output (избегаем 404 из-за кириллицы в URL)
+const ATTACHMENTS_SOURCE = "Служебное. Вложения"
+const ATTACHMENTS_OUTPUT = "attachments"
+
 const filesToCopy = async (argv: Argv, cfg: QuartzConfig) => {
   // glob all non MD files in content folder and copy it over
   return await glob("**", argv.directory, ["**/*.md", ...cfg.configuration.ignorePatterns])
@@ -14,7 +18,10 @@ const filesToCopy = async (argv: Argv, cfg: QuartzConfig) => {
 const copyFile = async (argv: Argv, fp: FilePath) => {
   const src = joinSegments(argv.directory, fp) as FilePath
 
-  const name = slugifyFilePath(fp)
+  // Папка вложений может быть в корне content или внутри подпапки (например База знаний.../Служебное. Вложения/)
+  const name = fp.includes(ATTACHMENTS_SOURCE + "/")
+    ? (joinSegments(ATTACHMENTS_OUTPUT, path.basename(fp)) as FilePath)
+    : slugifyFilePath(fp)
   const dest = joinSegments(argv.output, name) as FilePath
 
   // ensure dir exists
@@ -42,7 +49,9 @@ export const Assets: QuartzEmitterPlugin = () => {
         if (changeEvent.type === "add" || changeEvent.type === "change") {
           yield copyFile(ctx.argv, changeEvent.path)
         } else if (changeEvent.type === "delete") {
-          const name = slugifyFilePath(changeEvent.path)
+          const name = changeEvent.path.includes(ATTACHMENTS_SOURCE + "/")
+            ? (joinSegments(ATTACHMENTS_OUTPUT, path.basename(changeEvent.path)) as FilePath)
+            : slugifyFilePath(changeEvent.path)
           const dest = joinSegments(ctx.argv.output, name) as FilePath
           await fs.promises.unlink(dest)
         }

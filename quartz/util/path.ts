@@ -152,19 +152,13 @@ export function normalizeHastElement(rawEl: HastElement, curBase: FullSlug, newB
   return el
 }
 
-// resolve /a/b/c to ../..
+// Путь от страницы до корня сайта. Для public/a/b/c.html нужен ../../../ (3 уровня).
 export function pathToRoot(slug: FullSlug): RelativeURL {
-  let rootPath = slug
-    .split("/")
-    .filter((x) => x !== "")
-    .slice(0, -1)
-    .map((_) => "..")
-    .join("/")
-
-  if (rootPath.length === 0) {
-    rootPath = "."
+  const segments = slug.split("/").filter((x) => x !== "")
+  if (segments.length <= 1) {
+    return "." as RelativeURL
   }
-
+  const rootPath = segments.map((_) => "..").join("/")
   return rootPath as RelativeURL
 }
 
