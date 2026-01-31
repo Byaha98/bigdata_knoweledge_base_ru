@@ -12,13 +12,16 @@ type WriteOptions = {
 }
 
 export const write = async ({ ctx, slug, ext, content }: WriteOptions): Promise<FilePath> => {
-  // Пути в public — только транслит (URL-safe на любом хостинге)
-  const slugPath = transliterateForPath(slug)
-  // GitHub Pages и др. хостинги отдают index.html по запросу к папке — эмитим slug/index.html для чистых URL
-  const filePath =
+  // Пути в public — транслит + lowercase (GitHub Pages/Linux чувствителен к регистру)
+  const slugPath = transliterateForPath(slug).toLowerCase()
+  // GitHub Pages отдаёт index.html по запросу к /folder/ — файл должен быть folder/index.html, не folder/index/index.html
+  const pathForHtml =
     ext === ".html" && slugPath !== "index"
-      ? (joinSegments(slugPath, "index.html") as FilePath)
-      : (slugPath + ext) as FilePath
+      ? slugPath.endsWith("/index")
+        ? (slugPath.replace(/\/index$/, "") + "/index.html") as FilePath
+        : (joinSegments(slugPath, "index.html") as FilePath)
+      : null
+  const filePath = pathForHtml ?? (slugPath + ext) as FilePath
   const pathToPage = joinSegments(ctx.argv.output, filePath) as FilePath
   const dir = path.dirname(pathToPage)
   await fs.promises.mkdir(dir, { recursive: true })
