@@ -54,10 +54,11 @@ async function* processFolderInfo(
     }
 
     const content = renderPage(cfg, slugPath, componentData, opts, externalResources)
+    // Пишем в folder/index.html (не folder/index/index.html), чтобы Linux/GitHub Pages отдавал по /folder/
     yield write({
       ctx,
       content,
-      slug,
+      slug: folder as unknown as FullSlug,
       ext: ".html",
     })
   }
