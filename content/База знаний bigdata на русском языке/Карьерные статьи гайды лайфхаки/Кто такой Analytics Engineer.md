@@ -1,4 +1,4 @@
-![[Кто_такой_Analytics_Engineer_1.jpg]]
+![[Служебное. Вложения/Кто_такой_Analytics_Engineer_1.jpg]]
 
 # Кто такой Analytics Engineer и почему он меняет подход к хранилищам и моделям данных
 

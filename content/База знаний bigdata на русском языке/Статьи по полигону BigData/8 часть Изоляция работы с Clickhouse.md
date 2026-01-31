@@ -2,7 +2,7 @@
 
 В docker-compose обновил секцию Сlickhouse, чтобы можно было собирать и запускать Сlickhouse отдельно. Также новые версии клика могут блокировать стандартного юзера, если его никак не менять. Я нашел. способ скипать такую блокировку, т.к. у нас все локально и травоядно:
 
-![[poligon_clickhouse_isolation_1.png]]
+![[Служебное. Вложения/poligon_clickhouse_isolation_1.png]]
 ```
   clickhouse-server:
 
@@ -39,7 +39,7 @@
 ```
 docker compose down clickhouse-server
 ```
-![[poligon_clickhouse_isolation_2.png]]
+![[Служебное. Вложения/poligon_clickhouse_isolation_2.png]]
 Затем можно сделать pull новых изменений, которые я запушил в полигон:
 https://github.com/Byaha98/bigdata_poligon
 
@@ -48,7 +48,7 @@ https://github.com/Byaha98/bigdata_poligon
 ```
 docker compose up clickhouse-server
 ```
-![[poligon_clickhouse_isolation_3.png]]
+![[Служебное. Вложения/poligon_clickhouse_isolation_3.png]]
 Образ сам подтянется и контейнер запустится!
 
 На скрине видно, что проверка и блокировка дефолтного юзера была отключена, что и нужно было для локальной работы в новом клике.
