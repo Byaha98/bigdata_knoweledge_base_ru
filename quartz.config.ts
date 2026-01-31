@@ -16,7 +16,8 @@ const config: QuartzConfig = {
       provider: "plausible",
     },
     locale: "en-US",
-    baseUrl: "quartz.jzhao.xyz",
+    // Для GitHub Pages project site: https://<USERNAME>.github.io/<REPO>
+    baseUrl: "Byaha98.github.io/bigdata_knoweledge_base_ru",
     ignorePatterns: ["private", "templates", ".obsidian"],
     defaultDateType: "modified",
     theme: {

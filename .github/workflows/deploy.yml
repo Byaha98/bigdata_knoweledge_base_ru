@@ -26,8 +26,9 @@ jobs:
           node-version: 22
       - name: Install Dependencies
         run: npm ci
+      # Папка content/ (включая .md и Служебное. Вложения) должна быть в репозитории
       - name: Build Quartz
-        run: npx quartz build
+        run: npx quartz build -d content
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
