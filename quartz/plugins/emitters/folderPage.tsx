@@ -37,7 +37,7 @@ async function* processFolderInfo(
     ProcessedContent,
   ][]) {
     const slug = joinSegments(folder, "index") as FullSlug
-    const slugPath = transliterateForPath(slug)
+    const slugPath = transliterateForPath(slug) as FullSlug
     const [tree, file] = folderContent
     const cfg = ctx.cfg.configuration
     const externalResources = pageResources(pathToRoot(slugPath), resources)
@@ -92,11 +92,13 @@ function computeFolderInfo(
 }
 
 function _getFolders(slug: FullSlug): SimpleSlug[] {
-  var folderName = path.dirname(slug ?? "") as SimpleSlug
+  // path.posix — всегда "/", иначе на Windows path.dirname может дать другие разделители
+  const dirname = path.posix.dirname
+  var folderName = dirname(slug ?? "") as SimpleSlug
   const parentFolderNames = [folderName]
 
   while (folderName !== ".") {
-    folderName = path.dirname(folderName ?? "") as SimpleSlug
+    folderName = dirname(folderName ?? "") as SimpleSlug
     parentFolderNames.push(folderName)
   }
   return parentFolderNames

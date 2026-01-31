@@ -83,7 +83,9 @@ function buildHref(currentSlug: FullSlug, targetSlug: FullSlug): string {
   const basePath = document.body.dataset.basePath ?? ""
   if (basePath) {
     const path = targetSlug.replace(/\/index$/, "").replace(/^\/+/, "").replace(/\/+$/, "")
-    return basePath + "/" + (path ? path + "/" : "")
+    const pathOnly = basePath + "/" + (path ? path + "/" : "")
+    // Полный URL избегает 404 при переходе «назад» на GitHub Pages (SPA/fetch иначе могут разрешать путь неверно)
+    return typeof window !== "undefined" ? window.location.origin + pathOnly : pathOnly
   }
   return resolveRelative(currentSlug, targetSlug)
 }
