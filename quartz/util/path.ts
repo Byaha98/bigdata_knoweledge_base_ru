@@ -198,10 +198,18 @@ export function fullHref(baseUrl: string | undefined, basePath: string, targetSl
   return origin + absoluteHref(basePath, targetSlug, anchor)
 }
 
-// Путь от страницы до корня. При F5 URL часто без index.html — браузер считает базой родителя пути, поэтому берём segments.length (не +1).
+// Путь от страницы до корня. При F5 URL часто без index.html — браузер считает базой путь папки (без /index).
+// Для slug вида folder/index в URL только folder/, поэтому считаем уровни без сегмента "index".
 export function pathToRoot(slug: FullSlug): RelativeURL {
-  const segments = slug.split("/").filter((x) => x !== "")
+  let segments = slug.split("/").filter((x) => x !== "")
   if (slug === "index" || segments.length === 0) {
+    return "." as RelativeURL
+  }
+  // URL страницы папки — /path/folder/ (без index), поэтому не считаем хвостовой "index"
+  if (segments.at(-1) === "index") {
+    segments = segments.slice(0, -1)
+  }
+  if (segments.length === 0) {
     return "." as RelativeURL
   }
   const rootPath = Array(segments.length)

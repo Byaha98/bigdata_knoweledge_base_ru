@@ -162,7 +162,7 @@ describe("transforms", () => {
         ["abc", ".."],
         ["abc/def", "../.."],
         ["abc/def/ghi", "../../.."],
-        ["abc/def/index", "../../.."],
+        ["abc/def/index", "../.."],
       ],
       path.pathToRoot,
       path.isFullSlug,

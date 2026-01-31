@@ -3,6 +3,7 @@ import { QuartzComponentProps } from "../../components/types"
 import HeaderConstructor from "../../components/Header"
 import BodyConstructor from "../../components/Body"
 import { pageResources, renderPage } from "../../components/renderPage"
+import { VFile } from "vfile"
 import { ProcessedContent, QuartzPluginData, defaultProcessedContent } from "../vfile"
 import { FullPageLayout } from "../../cfg"
 import path from "path"
@@ -20,7 +21,7 @@ import {
 import { defaultListPageLayout, sharedPageComponents } from "../../../quartz.layout"
 import { FolderContent } from "../../components"
 import { write } from "./helpers"
-import { i18n, TRANSLATIONS } from "../../i18n"
+import type { TRANSLATIONS } from "../../i18n"
 import { BuildCtx } from "../../util/ctx"
 import { StaticResources } from "../../util/resources"
 interface FolderPageOptions extends FullPageLayout {
@@ -67,7 +68,7 @@ async function* processFolderInfo(
 function computeFolderInfo(
   folders: Set<SimpleSlug>,
   content: ProcessedContent[],
-  locale: keyof typeof TRANSLATIONS,
+  _locale: keyof typeof TRANSLATIONS,
 ): Record<SimpleSlug, ProcessedContent> {
   // Create default folder descriptions
   const folderInfo: Record<SimpleSlug, ProcessedContent> = Object.fromEntries(
@@ -83,11 +84,17 @@ function computeFolderInfo(
     ]),
   )
 
-  // Update with actual content if available
+  // Контент из index.md используем (tree, description), но title на страницу не пускаем — всегда «Содержимое папки»
+  const folderPageTitle = "Содержимое папки"
   for (const [tree, file] of content) {
     const slug = stripSlashes(simplifySlug(file.data.slug!)) as SimpleSlug
     if (folders.has(slug)) {
-      folderInfo[slug] = [tree, file]
+      const vfile = new VFile("")
+      vfile.data = {
+        ...file.data,
+        frontmatter: { ...file.data.frontmatter, title: folderPageTitle },
+      }
+      folderInfo[slug] = [tree, vfile]
     }
   }
 
