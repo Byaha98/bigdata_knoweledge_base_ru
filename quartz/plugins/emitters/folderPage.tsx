@@ -7,6 +7,7 @@ import { ProcessedContent, QuartzPluginData, defaultProcessedContent } from "../
 import { FullPageLayout } from "../../cfg"
 import path from "path"
 import {
+  FilePath,
   FullSlug,
   SimpleSlug,
   stripSlashes,
@@ -14,6 +15,7 @@ import {
   pathToRoot,
   simplifySlug,
   transliterateForPath,
+  slugifyFilePath,
 } from "../../util/path"
 import { defaultListPageLayout, sharedPageComponents } from "../../../quartz.layout"
 import { FolderContent } from "../../components"
@@ -104,6 +106,25 @@ function _getFolders(slug: FullSlug): SimpleSlug[] {
   return parentFolderNames
 }
 
+/** Все директории из списка файлов (относительные пути) → slug папки в том же формате, что и у контента. */
+function getAllFolderSlugsFromPaths(filePaths: FilePath[]): Set<SimpleSlug> {
+  const dirname = path.posix.dirname
+  const folderSlugs = new Set<SimpleSlug>()
+  for (const fp of filePaths) {
+    let p = dirname(fp)
+    while (p && p !== ".") {
+      // Приводим путь папки к slug-формату (транслит + slugify), как у file.data.slug
+      const slugWithIndex = transliterateForPath(
+        slugifyFilePath(joinSegments(p, "index.md") as FilePath),
+      ) as FullSlug
+      const folderSlug = simplifySlug(slugWithIndex) as SimpleSlug
+      folderSlugs.add(folderSlug)
+      p = dirname(p)
+    }
+  }
+  return folderSlugs
+}
+
 export const FolderPage: QuartzEmitterPlugin<Partial<FolderPageOptions>> = (userOpts) => {
   const opts: FullPageLayout = {
     ...sharedPageComponents,
@@ -136,7 +157,8 @@ export const FolderPage: QuartzEmitterPlugin<Partial<FolderPageOptions>> = (user
       const allFiles = content.map((c) => c[1].data)
       const cfg = ctx.cfg.configuration
 
-      const folders: Set<SimpleSlug> = new Set(
+      // Папки из обработанного контента (как раньше)
+      const foldersFromContent = new Set<SimpleSlug>(
         allFiles.flatMap((data) => {
           return data.slug
             ? _getFolders(data.slug).filter(
@@ -145,6 +167,18 @@ export const FolderPage: QuartzEmitterPlugin<Partial<FolderPageOptions>> = (user
             : []
         }),
       )
+
+      // Все папки по файловой системе (ctx.allFiles = все файлы в content, не только .md),
+      // чтобы index.html создавался для каждой директории и не было 404 при переходе «назад»
+      const foldersFromFs =
+        ctx.allFiles?.length > 0
+          ? getAllFolderSlugsFromPaths(ctx.allFiles as FilePath[])
+          : new Set<SimpleSlug>()
+
+      const folders: Set<SimpleSlug> = new Set([
+        ...foldersFromContent,
+        ...foldersFromFs,
+      ].filter((f) => f !== "." && f !== "tags" && f !== "/"))
 
       const folderInfo = computeFolderInfo(folders, content, cfg.locale)
       yield* processFolderInfo(ctx, folderInfo, allFiles, opts, resources)
