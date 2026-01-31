@@ -12,7 +12,12 @@ type WriteOptions = {
 }
 
 export const write = async ({ ctx, slug, ext, content }: WriteOptions): Promise<FilePath> => {
-  const pathToPage = joinSegments(ctx.argv.output, slug + ext) as FilePath
+  // GitHub Pages и др. хостинги отдают index.html по запросу к папке — эмитим slug/index.html для чистых URL
+  const filePath =
+    ext === ".html" && slug !== "index"
+      ? (joinSegments(slug, "index.html") as FilePath)
+      : (slug + ext) as FilePath
+  const pathToPage = joinSegments(ctx.argv.output, filePath) as FilePath
   const dir = path.dirname(pathToPage)
   await fs.promises.mkdir(dir, { recursive: true })
   await fs.promises.writeFile(pathToPage, content)

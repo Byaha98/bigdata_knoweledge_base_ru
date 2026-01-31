@@ -152,13 +152,15 @@ export function normalizeHastElement(rawEl: HastElement, curBase: FullSlug, newB
   return el
 }
 
-// Путь от страницы до корня сайта. Для public/a/b/c.html нужен ../../../ (3 уровня).
+// Путь от страницы до корня. Страницы эмитятся как slug/index.html — на 1 уровень глубже.
 export function pathToRoot(slug: FullSlug): RelativeURL {
   const segments = slug.split("/").filter((x) => x !== "")
-  if (segments.length <= 1) {
+  if (slug === "index" || segments.length === 0) {
     return "." as RelativeURL
   }
-  const rootPath = segments.map((_) => "..").join("/")
+  const rootPath = Array(segments.length + 1)
+    .fill("..")
+    .join("/")
   return rootPath as RelativeURL
 }
 
@@ -226,7 +228,6 @@ export function transformLink(src: FullSlug, target: string, opts: TransformOpti
   if (opts.strategy === "relative") {
     return targetSlug as RelativeURL
   } else {
-    const folderTail = isFolderPath(targetSlug) ? "/" : ""
     const canonicalSlug = stripSlashes(targetSlug.slice(".".length))
     let [targetCanonical, targetAnchor] = splitAnchor(canonicalSlug)
 
@@ -241,12 +242,14 @@ export function transformLink(src: FullSlug, target: string, opts: TransformOpti
       // only match, just use it
       if (matchingFileNames.length === 1) {
         const targetSlug = matchingFileNames[0]
-        return (resolveRelative(src, targetSlug) + targetAnchor) as RelativeURL
+        const pageTail = getFileExtension(targetCanonical) ? "" : "/"
+        return (resolveRelative(src, targetSlug) + pageTail + targetAnchor) as RelativeURL
       }
     }
 
     // if it's not unique, then it's the absolute path from the vault root
-    return (joinSegments(pathToRoot(src), canonicalSlug) + folderTail) as RelativeURL
+    const pageTail = getFileExtension(canonicalSlug) ? "" : "/"
+    return (joinSegments(pathToRoot(src), canonicalSlug) + pageTail + targetAnchor) as RelativeURL
   }
 }
 
