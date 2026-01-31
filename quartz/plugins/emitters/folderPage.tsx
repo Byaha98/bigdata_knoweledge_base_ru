@@ -76,7 +76,7 @@ function computeFolderInfo(
       defaultProcessedContent({
         slug: joinSegments(folder, "index") as FullSlug,
         frontmatter: {
-          title: "Содержимое",
+          title: "Содержимое папки",
           tags: [],
         },
       }),
