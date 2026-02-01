@@ -11,7 +11,9 @@ li.section-li {
 
   & > .section {
     display: grid;
-    grid-template-columns: fit-content(8em) 3fr 1fr;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0 1em;
+    align-items: baseline;
 
     @media all and ($mobile) {
       & > .tags {
@@ -19,8 +21,14 @@ li.section-li {
       }
     }
 
+    & > .desc {
+      min-width: 0;
+    }
+
     & > .desc > h3 > a {
       background-color: transparent;
+      white-space: normal;
+      word-break: normal;
     }
 
     & .meta {
@@ -32,7 +40,7 @@ li.section-li {
 
 // modifications in popover context
 .popover .section {
-  grid-template-columns: fit-content(8em) 1fr !important;
+  grid-template-columns: minmax(0, 1fr) !important;
 
   & > .tags {
     display: none;
