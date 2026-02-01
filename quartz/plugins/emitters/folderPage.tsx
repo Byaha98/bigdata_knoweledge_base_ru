@@ -29,6 +29,44 @@ interface FolderPageOptions extends FullPageLayout {
   sort?: (f1: QuartzPluginData, f2: QuartzPluginData) => number
 }
 
+/** Папка «как у Тестовые задания»: есть статья в самой папке + подпапка. По короткому URL часто 404 — эмитим редирект. */
+function isSpecialFolder(folderSlug: SimpleSlug, allFiles: QuartzPluginData[]): boolean {
+  const prefix = folderSlug + "/"
+  let hasFileInFolder = false
+  let hasFileInSubfolder = false
+  for (const data of allFiles) {
+    const s = data.slug ?? ""
+    if (!s.startsWith(prefix)) continue
+    const after = s.slice(prefix.length)
+    const segments = after.split("/").filter(Boolean)
+    if (segments.length === 1) hasFileInFolder = true
+    if (segments.length >= 2) hasFileInSubfolder = true
+    if (hasFileInFolder && hasFileInSubfolder) return true
+  }
+  return false
+}
+
+/** Короткий slug для редиректа: последние два сегмента пути через дефис (напр. da-dwh-analytics-testovye-zadaniya). */
+function fallbackSlugForFolder(folderSlug: SimpleSlug): SimpleSlug {
+  const segments = folderSlug.split("/").filter(Boolean)
+  if (segments.length < 2) return folderSlug
+  const lastTwo = segments.slice(-2).join("-")
+  return lastTwo as SimpleSlug
+}
+
+/** Дополнительные короткие slug для редиректа (напр. da-dwh-testovye-zadaniya без "analytics"), чтобы ловить типичные ошибочные URL. */
+function extraFallbackSlugs(folderSlug: SimpleSlug): SimpleSlug[] {
+  const segments = folderSlug.split("/").filter(Boolean)
+  if (segments.length < 2) return []
+  const [parent, folder] = segments.slice(-2)
+  const out: SimpleSlug[] = []
+  // da-dwh-analytics + testovye-zadaniya → da-dwh-testovye-zadaniya (как часто вводят/дают ссылки)
+  if (parent === "da-dwh-analytics" && folder === "testovye-zadaniya") {
+    out.push("da-dwh-testovye-zadaniya" as SimpleSlug)
+  }
+  return out
+}
+
 async function* processFolderInfo(
   ctx: BuildCtx,
   folderInfo: Record<SimpleSlug, ProcessedContent>,
@@ -63,6 +101,33 @@ async function* processFolderInfo(
       slug: folder as unknown as FullSlug,
       ext: ".html",
     })
+
+    // Особый случай: папка + статья в ней + подпапка — по короткому URL часто 404; эмитим редиректы с коротких slug на полный путь.
+    if (isSpecialFolder(folder, allFiles)) {
+      const targetPath = "../" + folder + "/"
+      const redirectHtml = `<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="refresh" content="0; url=${targetPath}">
+<link rel="canonical" href="${targetPath}">
+<title>Перенаправление</title>
+</head>
+<body><p>Перенаправление: <a href="${targetPath}">открыть папку</a>.</p></body>
+</html>`
+      const fallbacks = [
+        canonicalPathForUrl(fallbackSlugForFolder(folder)),
+        ...extraFallbackSlugs(folder).map((s) => canonicalPathForUrl(s)),
+      ]
+      for (const fallback of fallbacks) {
+        yield write({
+          ctx,
+          content: redirectHtml,
+          slug: fallback as FullSlug,
+          ext: ".html",
+        })
+      }
+    }
   }
 }
 
