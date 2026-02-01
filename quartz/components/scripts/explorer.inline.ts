@@ -1,5 +1,5 @@
 import { FileTrieNode } from "../../util/fileTrie"
-import { FullSlug, resolveRelative, simplifySlug, transliterateForPath } from "../../util/path"
+import { FullSlug, resolveRelative, simplifySlug, transliterateForPath, canonicalPathForUrl } from "../../util/path"
 import { ContentDetails } from "../../plugins/emitters/contentIndex"
 
 type MaybeHTMLElement = HTMLElement | undefined
@@ -81,8 +81,8 @@ function toggleFolder(evt: MouseEvent) {
 
 function buildHref(currentSlug: FullSlug, targetSlug: FullSlug): string {
   const basePath = document.body.dataset.basePath ?? ""
-  // URL всегда в транслите — так же, как пути файлов на диске (GitHub Pages чувствителен к регистру и кодировке)
-  const target = transliterateForPath(targetSlug)
+  // Канонический путь (lowercase) — как у записанных файлов, иначе 404 на чувствительных к регистру серверах
+  const target = canonicalPathForUrl(transliterateForPath(targetSlug))
   if (basePath) {
     const path = target.replace(/\/index$/, "").replace(/^\/+/, "").replace(/\/+$/, "")
     const pathOnly = basePath + "/" + (path ? path + "/" : "")

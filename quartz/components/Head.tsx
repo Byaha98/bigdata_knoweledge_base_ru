@@ -1,5 +1,5 @@
 import { i18n } from "../i18n"
-import { FullSlug, getFileExtension, joinSegments, pathToRoot, transliterateForPath } from "../util/path"
+import { FullSlug, getFileExtension, joinSegments, pathToRoot, transliterateForPath, canonicalPathForUrl } from "../util/path"
 import { CSSResourceToStyleElement, JSResourceToScriptElement } from "../util/resources"
 import { googleFontHref, googleFontSubsetHref } from "../util/theme"
 import { QuartzComponent, QuartzComponentConstructor, QuartzComponentProps } from "./types"
@@ -32,7 +32,7 @@ export default (() => {
     const slugForUrl =
       fileData.slug === "404"
         ? ""
-        : transliterateForPath(fileData.slug!).replace(/\/index$/, "").replace(/^\/+/, "").replace(/\/+$/, "")
+        : canonicalPathForUrl(transliterateForPath(fileData.slug!)).replace(/\/index$/, "").replace(/^\/+/, "").replace(/\/+$/, "")
     const socialUrl =
       fileData.slug === "404"
         ? url.toString()

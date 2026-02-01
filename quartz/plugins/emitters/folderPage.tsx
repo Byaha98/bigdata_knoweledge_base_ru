@@ -16,6 +16,7 @@ import {
   pathToRoot,
   simplifySlug,
   transliterateForPath,
+  canonicalPathForUrl,
   slugifyFilePath,
 } from "../../util/path"
 import { defaultListPageLayout, sharedPageComponents } from "../../../quartz.layout"
@@ -125,8 +126,8 @@ function getAllFolderSlugsFromPaths(filePaths: FilePath[]): Set<SimpleSlug> {
     let p = dirname(fp)
     while (p && p !== ".") {
       // Приводим путь папки к slug-формату (транслит + slugify), как у file.data.slug
-      const slugWithIndex = transliterateForPath(
-        slugifyFilePath(joinSegments(p, "index.md") as FilePath),
+      const slugWithIndex = canonicalPathForUrl(
+        transliterateForPath(slugifyFilePath(joinSegments(p, "index.md") as FilePath)),
       ) as FullSlug
       const folderSlug = simplifySlug(slugWithIndex) as SimpleSlug
       folderSlugs.add(folderSlug)

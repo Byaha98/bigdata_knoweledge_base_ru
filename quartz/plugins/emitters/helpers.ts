@@ -1,7 +1,7 @@
 import path from "path"
 import fs from "fs"
 import { BuildCtx } from "../../util/ctx"
-import { FilePath, FullSlug, joinSegments, transliterateForPath } from "../../util/path"
+import { FilePath, FullSlug, joinSegments, transliterateForPath, canonicalPathForUrl } from "../../util/path"
 import { Readable } from "stream"
 
 type WriteOptions = {
@@ -12,7 +12,7 @@ type WriteOptions = {
 }
 
 export const write = async ({ ctx, slug, ext, content }: WriteOptions): Promise<FilePath> => {
-  const slugPath = transliterateForPath(slug)
+  const slugPath = canonicalPathForUrl(transliterateForPath(slug))
   // GitHub Pages и др. отдают index.html по запросу к папке — эмитим slug/index.html для чистых URL
   const filePath =
     ext === ".html" && slugPath !== "index"

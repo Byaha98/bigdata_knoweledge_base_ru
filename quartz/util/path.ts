@@ -92,6 +92,14 @@ export function simplifySlug(fp: FullSlug): SimpleSlug {
   return (res.length === 0 ? "/" : res) as SimpleSlug
 }
 
+/** Канонический путь для записи файлов и URL: сегменты в нижнем регистре. Исключает 404 из-за разного регистра (Windows/macOS, ссылки vs файлы). */
+export function canonicalPathForUrl(slug: string): string {
+  return slug
+    .split("/")
+    .map((seg) => seg.toLowerCase())
+    .join("/")
+}
+
 /** Транслитерация кириллицы в латиницу для путей (URL-safe). */
 export function transliterateForPath(s: string): string {
   const map: Record<string, string> = {
@@ -183,10 +191,10 @@ export function getBasePath(baseUrl: string | undefined): string {
   return pathname === "/" ? "" : pathname
 }
 
-/** Абсолютный href от корня сайта (для project site — с basePath). */
+/** Абсолютный href от корня сайта (для project site — с basePath). Использует канонический путь (lowercase) для совпадения с записанными файлами. */
 export function absoluteHref(basePath: string, targetSlug: FullSlug, anchor = ""): string {
   if (!basePath) return ""
-  const path = transliterateForPath(targetSlug).replace(/\/index$/, "").replace(/^\/+/, "").replace(/\/+$/, "")
+  const path = canonicalPathForUrl(transliterateForPath(targetSlug)).replace(/\/index$/, "").replace(/^\/+/, "").replace(/\/+$/, "")
   const trail = path ? path + "/" : ""
   return basePath + "/" + trail + anchor
 }
