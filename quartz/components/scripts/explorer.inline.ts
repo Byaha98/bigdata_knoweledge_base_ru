@@ -89,7 +89,9 @@ function buildHref(currentSlug: FullSlug, targetSlug: FullSlug): string {
     // Полный URL избегает 404 при переходе «назад» на GitHub Pages (SPA/fetch иначе могут разрешать путь неверно)
     return typeof window !== "undefined" ? window.location.origin + pathOnly : pathOnly
   }
-  return resolveRelative(currentSlug, target as FullSlug)
+  // Без basePath — относительный путь; для папок добавляем trailing slash, иначе сервер может не отдать index.html
+  const rel = resolveRelative(currentSlug, target as FullSlug)
+  return targetSlug.endsWith("/index") ? rel + "/" : rel
 }
 
 function createFileNode(currentSlug: FullSlug, node: FileTrieNode): HTMLLIElement {

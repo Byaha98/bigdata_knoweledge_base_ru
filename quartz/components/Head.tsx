@@ -27,11 +27,16 @@ export default (() => {
     const baseDir = fileData.slug === "404" ? path : pathToRoot(fileData.slug!)
     const iconPath = joinSegments(baseDir, "static/icon.png")
 
-    // Url of current page (транслит для GitHub Pages)
+    // Url of current page (транслит для GitHub Pages). Для страниц папок убираем /index из пути,
+    // иначе og:url будет .../folder/index и на части серверов даст 404.
+    const slugForUrl =
+      fileData.slug === "404"
+        ? ""
+        : transliterateForPath(fileData.slug!).replace(/\/index$/, "").replace(/^\/+/, "").replace(/\/+$/, "")
     const socialUrl =
       fileData.slug === "404"
         ? url.toString()
-        : joinSegments(url.toString(), transliterateForPath(fileData.slug!))
+        : joinSegments(url.toString(), slugForUrl) + (fileData.slug!.endsWith("/index") && slugForUrl ? "/" : "")
 
     const usesCustomOgImage = ctx.cfg.plugins.emitters.some(
       (e) => e.name === CustomOgImagesEmitterName,
