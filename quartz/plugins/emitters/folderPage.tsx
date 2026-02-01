@@ -84,14 +84,17 @@ function computeFolderInfo(
     ]),
   )
 
-  // Контент из index.md используем (tree, description), но title на страницу не пускаем — всегда «Содержимое папки»
+  // Контент из index.md или статьи в папке используем (tree, description), но slug и title — всегда страницы папки.
+  // Иначе Head/FolderContent получают slug статьи → неверные пути к ресурсам и пустой список содержимого папки.
   const folderPageTitle = "Содержимое папки"
   for (const [tree, file] of content) {
     const slug = stripSlashes(simplifySlug(file.data.slug!)) as SimpleSlug
     if (folders.has(slug)) {
+      const folderSlug = joinSegments(slug, "index") as FullSlug
       const vfile = new VFile("")
       vfile.data = {
         ...file.data,
+        slug: folderSlug,
         frontmatter: { ...file.data.frontmatter, title: folderPageTitle },
       }
       folderInfo[slug] = [tree, vfile]
