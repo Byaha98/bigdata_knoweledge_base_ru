@@ -1,0 +1,671 @@
+# Макросы DBT как пример продвинутого SQL для трансформации данных
+
+Итак, попробуем пощупать макросы в DBT. 
+
+Макросы в DBT нужны, чтобы один раз описать кусок логики (SQL + Jinja) и переиспользовать его во многих моделях, тем самым уменьшая дублирование и упрощая масштабирование проекта.
+
+Динамическое создание таблиц, вариации таблиц в зависимости от переменных, элементы python посреди SQL кода, унификация повторяющегося SQL кода и его переиспользование, масштабируемость макросов на большие объемы скриптов, дата QA тестов - это все про макросы DBT. Еще и в гите все. Здорово!
+
+Олды в целом рассматривают DBT и его макросы как эволюцию хранимых процедур. По сути, dbt‑проект + макросы действительно позволяют скомпоновать все SQL трансформации  удобнее, чем разрозненные хранимки:  метаданные, тесты, CI/CD, хорошая интеграция под оркестрацию и т.д.
+
+Важная часть макросов DBT - это использование **Jinja2**. Jinja2 - это шаблонизатор для Python, который берёт текстовый шаблон с переменными/циклами/условиями и на их основе генерирует «чистый» текст (в dbt — готовый SQL).
+
+Сразу скажу для новичков: DBT - оркестратор и раздатчик команд, вся нагрузка по железу идет на сервер, где БД. 
+
+Вот короткий пример, как создается макрос, затем он интегрируется в модель и потом в скомпилированный SQL (который и пойдет как команда в БД, то есть у нас адаптер PostgreSQL, тогда ==dbt.current_timestamp()== станет ==now()==))
+## Теоретический пример макроса DBT
+### 1. Макрос (macros/add_loaded_at.sql)
+
+Макрос =={{ add_loaded_at() }}== подставляет в SQL выражение с текущим временем и алиасом ==loaded_at==.
+
+==column_name== - это аргумент макроса, и при желании во время создания DBT моделей туда можно подставлять и другие алиасы для колонки. А можно этот макрос применить к 10 DBT моделям и 10 раз указать разные названия для этой колонки. Так то! Вариативность!
+
+```
+{% macro add_loaded_at(column_name='loaded_at') %}
+    {{ dbt.current_timestamp() }} as {{ column_name }}
+{% endmacro %}
+```
+
+SQL файл с макросом ==add_loaded_at== должен лежать внутри DBT проекта в папке macros
+### 2. Модель (models/stg_orders.sql)
+
+SQL файлы с DBT моделями можно найти в папке models.
+
+```
+{{ config(materialized='view') }}
+
+select
+    id,
+    created_at,
+    {{ add_loaded_at() }}
+from {{ source('raw', 'orders') }}
+```
+
+### 3. Скомпилированный SQL (target/compiled/.../stg_orders.sql, Postgres)
+
+Это голые SQL команды, которые пойдут в БД (такой код можно найти в DBT проекте в папке **target**):
+
+```
+create or replace view analytics.stg_orders as
+
+select
+    id,
+    created_at,
+    now() as loaded_at
+from raw.orders;
+```
+
+
+**{{ config(materialized='view') }}  и {{ source('raw', 'orders') }} - это тоже макросы DBT, но встроенные.
+
+- `{{ config(materialized='view') }}` — это вызов встроенного макроса dbt `config`, который настраивает модель (здесь: говорит dbt сделать её как view).
+
+- `{{ source('raw', 'orders') }}` — это вызов встроенного макроса dbt `source`, который подставляет имя исходной таблицы (типа `raw.orders`) из конфига `sources` в DBT проекте. Этот конфиг описывается обычно в папке с DBT моделями как ямлик, где перечислены исходные таблицы, от которых дальше пойдут трансформации всех следующих DBT моделей.
+
+## Практический пример макроса как переиспользуемой части кода
+
+Это был теоретический брифинг, давайте теперь поработаем на практике в полигоне с DBT и Clickhouse!
+
+Реализуем так же макрос как отдельную часть SQL кода, но у же непосредственно в нашем полигоне. Представим ситуацию - данные к нам приходят на сырой(или stage) слой с таймстампами в UTC времени, а нам надо сделать московское время. Это частая практическая задача и головная боль многих компаний (привести все к одному часовому поясу и не запутаться :D)
+
+### 1. Создание исходной таблицы 
+
+В папке clickhouse_sql/dbt_jinja_guide в ==raw_table_utc.sql== папке полигона я сделал таблицу с наполнением, где есть айдишник заказов и время создания (таймстамп) в UTC:
+[(ссылка)](https://github.com/Byaha98/bigdata_poligon/blob/main/clickhouse_sql/dbt_jinja_guide/raw_table_utc.sql)
+![[Служебное. Вложения/dbt_jinja_guide_1.png]]
+
+```
+CREATE TABLE raw_table_utc(
+
+order_id UInt64,
+
+created_at DateTime('UTC')
+
+) ENGINE = MergeTree()
+
+ORDER BY order_id;
+
+  
+
+-- Тестовые данные (5 строк)
+
+INSERT INTO raw_table_utc VALUES
+
+(1, '2025-01-01 10:00:00'),
+
+(2, '2025-01-01 10:05:00'),
+
+(3, '2025-01-01 10:10:00'),
+
+(4, '2025-01-01 10:15:00'),
+
+(5, '2025-01-01 10:20:00');
+```
+
+
+Запускаем полигон, чтобы создать таблицу в Clickhouse. Заходим в папку airflow_dbt, заходим в терминал и вводим команду(докер композ может быть с тире или без, в зависимости от ОС):
+
+
+```
+docker-compose up -d 
+```
+
+
+Заходим в кликхауз и активируем ddl скрипт с инсертами:
+
+![[Служебное. Вложения/dbt_jinja_guide_2.png]]
+
+Исходная таблица ==raw_table_utc== со временем в UTC готова!
+
+### 2. Разметка source в DBT
+
+Дальше надо пометить эту таблицу как source в DBT.
+
+Зайдем в /poligon/bigdata_poligon/airflow_dbt/dbt/poligon/models
+
+и там я создал папку dbt_jinja_guide с файлом ==sources.yml==
+[(ссылка)](https://github.com/Byaha98/bigdata_poligon/blob/main/airflow_dbt/dbt/poligon/models/dbt_jinja_guide/sources.yml)
+
+В нем я оставил конфиг следующего содержания:
+```
+# name: raw — имя источника в dbt (для вызова source('raw', 'raw_table_utc')), не схема.
+# Таблица в базе: default.raw_table_utc
+sources:
+  - name: raw
+    database: default
+    tables:
+      - name: raw_table_utc
+        description: Сырая таблица заказов с временными метками в UTC
+```
+
+Сразу уточню. name: raw — это имя источника (логическая группа для source('raw', 'raw_table_utc')), не схема. Таблица в ClickHouse — default.raw_table_utc. default - база данных.
+
+![[Служебное. Вложения/dbt_jinja_guide_3.png]]
+
+### 3. Создание макроса
+
+Теперь можно сделать макрос, который будет брать колонку с таймстампом в UTC и превращать в московское время.
+
+Идем в папку macros (bigdata_poligon/airflow_dbt/dbt/poligon/macros), [ссылка](https://github.com/Byaha98/bigdata_poligon/blob/main/airflow_dbt/dbt/poligon/macros/moscow_time_macro.sql)
+
+И там я создал ==moscow_time_macro.sql==
+![[Служебное. Вложения/dbt_jinja_guide_4.png]]
+```
+{% macro moscow_time_macro(column_name) %}
+
+toTimezone({{ column_name }}, 'Europe/Moscow')
+
+{% endmacro %}
+```
+
+
+Все просто - на вход в макрос в качестве аргумента подается колонка (таймстамп) и макрос конвертирует время в московский часовой пояс.
+
+Теперь можно сделать DBT модель, которая возьмет ==default.raw_table_utc== таблицу и применит там макрос  ==moscow_time_macro!== 
+### 4. Создание DBT модели с макросом
+
+Возвращаюсь в папку /poligon/bigdata_poligon/airflow_dbt/dbt/poligon/models/dbt_jinja_guide и там рядом с sources.yml делаю DBT модель ==stage_orders_moscow.sql==
+[(ссылка)](https://github.com/Byaha98/bigdata_poligon/blob/main/airflow_dbt/dbt/poligon/models/dbt_jinja_guide/stage_orders_moscow.sql)
+
+Вот ее код:
+```
+{{
+
+    config(
+
+        materialized='table'
+
+    )
+
+}}
+
+  
+
+SELECT
+
+    order_id,
+
+    {{ moscow_time_macro('created_at') }} AS created_at_moscow
+
+FROM {{ source('raw', 'raw_table_utc') }}
+
+```
+
+В отличие от теоретического примера с postgres, тут сделали материализацию table.
+
+### 5. Создание Airflow DAG по запуску DBT модели
+
+Давайте теперь сделаем DAG Airflow, который будет запускать dbt модель ==stage_orders_moscow==
+
+Идем в папку bigdata_poligon/airflow_dbt/dags и создаем там ==dbt_jinja_guide_dag.py==
+[(ссылка)](https://github.com/Byaha98/bigdata_poligon/blob/main/airflow_dbt/dags/dbt_jinja_guide_dag.py)
+
+Заходим в Airflow (креды: airflow-airflow)
+
+Далее запускаем DAG (конпка trigger) и смотрим первую задачу - run_dbt_model_stage_orders_moscow
+![[Служебное. Вложения/dbt_jinja_guide_5.png]]
+![[Служебное. Вложения/dbt_jinja_guide_6a.png]]
+![[Служебное. Вложения/dbt_jinja_guide_6b.png]]
+В Clickhouse видно, что UTC был переведен в Москву, все ок.
+### 6. Просмотр скомпилированного кода макросов
+
+Так как докер контейнеры и наша ОС связаны томами (https://yandex.cloud/ru/docs/container-registry/concepts/docker-volume?utm_referrer=https%3A%2F%2Fwww.google.com%2F , так же см. docker-compose файл и раздел volumes в начале), то и dbt данные мы тут же можем посмотреть. В том числе и скомпилированный код DBT модели. 
+
+Заходим в bigdata_poligon/airflow_dbt/dbt/poligon/target. Заходим в папку complied и ищем нашу ==stage_orders_moscow==
+![[Служебное. Вложения/dbt_jinja_guide_6.png]]
+
+Видим скомпилированный код нашего макроса c таймзонами:
+```
+SELECT
+
+    order_id,
+
+    toTimezone(created_at, 'Europe/Moscow')
+
+ AS created_at_moscow
+
+FROM default.raw_table_utc
+```
+Так же видно, что показан код от FROM {{ source('raw', 'raw_table_utc') }}.
+
+А вот макрос материализации таблицы скрыт глубже под капотом. Отправляться на его поиски я не буду, это лучше смотреть в документации или исходном коде. Вкратце: там используются запасные таблицы и происходят замены и переименования вместо drop-create table. Кому интересно, код тут: https://github.com/ClickHouse/dbt-clickhouse/blob/main/dbt/include/clickhouse/macros/materializations/table.sql
+
+Таким образом, мы не только рассмотрели макросы в DBT как удобное хранение повторяющегося кода, но и посмотрели их реализации в DBT моделях, в оркестрации Airflow и даже глянули скомпилированный код. Круто!
+
+## Макрос для создания адаптивной таблицы с аргументами
+
+Теперь рассмотрим сценарий, где макрос может создавать целые таблицы под динамически меняющиеся данные и даже столбцы таблиц!
+
+### 1. Создание исходной таблицы
+
+Иду в 
+bigdata_poligon/clickhouse_sql/dbt_jinja_guide/
+
+и там сделал скрипт ==raw_events_utc.ddl== [(ссылка)](https://github.com/Byaha98/bigdata_poligon/blob/main/clickhouse_sql/dbt_jinja_guide/raw_events_utc.sql)
+
+Так же создаем и наполняем таблицу в Dbeaver как в прошлый раз
+
+### 2. Добавление исходной таблицы как source
+
+Тут же добавляю таблицу как source в bigdata_poligon/airflow_dbt/dbt/poligon/models/dbt_jinja_guide/sources.yml
+[(ссылка)](https://github.com/Byaha98/bigdata_poligon/blob/main/airflow_dbt/dbt/poligon/models/dbt_jinja_guide/sources.yml)
+
+Это таблица состоит из событий, которые юзеры(их id) совершали в разное время. 
+
+### 3. Создание макроса
+
+Я хочу сделать макрос, который будет получать колонки на вход (как в  ==raw_events_utc.ddl== по содержанию, при этом названия могут быть самые разные) и затем по каждому юзеру размечать пользовательские сессии. Сессией пусть будет считаться набор действий в пределах одного часа. 
+
+Также пусть макрос в пределах сессий будет размечать прошлые и следующие события в рамках сессий. Если прошлого события нет - там вместо null будут **start**. Если следующего события нет - там будет **end**.
+
+Делаю макрос в bigdata_poligon/airflow_dbt/dbt/poligon/macros/sessionize_events.sql
+[(ссылка)](https://github.com/Byaha98/bigdata_poligon/blob/main/airflow_dbt/dbt/poligon/macros/sessionize_events.sql)
+
+В комментариях к коду вкратце описана каждая CTEшка и оконка, что они делают.
+
+```
+{#
+
+  Размечает пользовательские сессии и предыдущее/следующее событие в рамках сессии.
+
+  Сессия = действия одного пользователя в пределах session_interval_seconds (по умолчанию 1 час).
+
+  prev_event: если нет предыдущего — 'start'; next_event: если нет следующего — 'end'.
+
+  
+
+  CTE:
+
+  - base: для каждой строки — время предыдущего события по тому же пользователю (_prev_ts).
+
+  - with_session_id: флаг «начало новой сессии» (нет предыдущего или разрыв по времени > session_interval_seconds), затем session_id как накопительная сумма флагов.
+
+  - with_prev_next: в рамках (user_id, session_id) — prev_event (lagInFrame, иначе 'start') и next_event (leadInFrame с кадром following, иначе 'end').
+
+#}
+
+{% macro sessionize_events(
+
+    relation,
+
+    user_id_col,
+
+    event_col,
+
+    timestamp_col,
+
+    session_interval_seconds=3600
+
+) %}
+
+with
+
+-- Для каждой строки — время предыдущего события того же пользователя (по порядку timestamp).
+
+base as (
+
+    select
+
+        {{ user_id_col }},
+
+        {{ event_col }},
+
+        {{ timestamp_col }},
+
+        lagInFrame({{ timestamp_col }}) over (partition by {{ user_id_col }} order by {{ timestamp_col }}) as _prev_ts
+
+    from {{ relation }}
+
+),
+
+-- Флаг «новая сессия»: 1, если нет предыдущего события или разрыв по времени > session_interval_seconds; иначе 0.
+
+-- session_id = накопительная сумма флагов по пользователю (каждая сессия получает свой номер).
+
+with_session_id as (
+
+    select
+
+        {{ user_id_col }},
+
+        {{ event_col }},
+
+        {{ timestamp_col }},
+
+        sum(
+
+            if(_prev_ts is null or dateDiff('second', _prev_ts, {{ timestamp_col }}) > {{ session_interval_seconds }}, 1, 0)
+
+        ) over (partition by {{ user_id_col }} order by {{ timestamp_col }} rows between unbounded preceding and current row) as session_id
+
+    from base
+
+),
+
+-- В рамках (user_id, session_id) по порядку timestamp: prev_event и next_event; при отсутствии — 'start' и 'end' через coalesce.
+
+with_prev_next as (
+
+    select
+
+        {{ user_id_col }},
+
+        {{ event_col }},
+
+        {{ timestamp_col }},
+
+        session_id,
+
+        -- prev_event: lagInFrame с offset=1 и default='start'
+
+        lagInFrame({{ event_col }}, 1, 'start')
+
+            over (partition by {{ user_id_col }}, session_id order by {{ timestamp_col }}) as prev_event,
+
+        -- next_event: leadInFrame с offset=1 и default='end', кадр включает все последующие строки
+
+        leadInFrame({{ event_col }}, 1, 'end')
+
+            over (
+
+                partition by {{ user_id_col }}, session_id
+
+                order by {{ timestamp_col }}
+
+                rows between current row and unbounded following
+
+            ) as next_event
+
+    from with_session_id
+
+)
+
+select * from with_prev_next
+
+{% endmacro %}
+```
+
+Можно посмотреть, как оформляются комментарии в макросе, как начинается и заканчивается макрос. Единственная переменная, которой я сделал значение по умолчанию - ==session_interval_seconds==. Все остальное можно будет динамически подставлять в зависимости от ситуации.
+
+### 4. Создание DBT модели 
+
+Далее нужно сделать dbt модель, где будет применяться макрос.
+
+Я сделал ==events_sessions.sql== в
+
+bigdata_poligon/airflow_dbt/dbt/poligon/models/dbt_jinja_guide/
+[(ссылка)](https://github.com/Byaha98/bigdata_poligon/blob/main/airflow_dbt/dbt/poligon/models/dbt_jinja_guide/events_sessions.sql)
+```
+{{
+
+    config(
+
+        materialized='table'
+
+    )
+
+}}
+
+  
+
+{{
+
+    sessionize_events(
+
+        relation=source('raw', 'raw_events_utc'),
+
+        user_id_col='user_id',
+
+        event_col='event',
+
+        timestamp_col='event_timestamp'
+
+    )
+
+}}
+```
+
+Как видно, мы подставили все аргументы кроме ==session_interval_seconds== (есть значение по умолчанию)
+### 5. Обзор результатов запуска DAG
+
+Мы уже запускали ==dbt_jinja_guide_dag==, и я в процессе создания гайда тоже запускал. Задачи на эту и прошлую DBT модель однотипные, идем сразу в DBeaver и Clickhouse искать таблицу events_sessions.
+
+![[Служебное. Вложения/dbt_jinja_guide_7.png]]
+
+
+На скриншоте видим, что наш макрос сработал! 
+
+Кстати разметка сессий пользователей - одна из задач по SQL для синьоров на собеседованиях :). Тут же мы эту задачу сделали автоматизированной. На вход макроса может подаваться любая таблица источник, любые названия колонок (главное, чтобы форматы данных и смысл был тот же). Мы можем передавать в макрос любое количество секунд, которое считаем достаточным для отсекания сессий. И самое главное - макрос сам создает целую таблицу!
+
+### 6. Обзор скомпилированного кода
+
+Давайте так же посмотрим скомпилированный код макроса ==sessionize_events== после запуска модели ==events_sessions==. Для этого идем в bigdata_poligon/airflow_dbt/dbt/poligon/target/compiled/poligon/models/dbt_jinja_guide/events_sessions.sql
+
+```
+with
+
+-- Для каждой строки — время предыдущего события того же пользователя (по порядку timestamp).
+
+base as (
+
+    select
+
+        user_id,
+
+        user_event,
+
+        event_timestamp,
+
+        lagInFrame(event_timestamp) over (partition by user_id order by event_timestamp) as _prev_ts
+
+    from `default`.`raw_events_utc`
+
+),
+
+-- Флаг «новая сессия»: 1, если нет предыдущего события или разрыв по времени > session_interval_seconds; иначе 0.
+
+-- session_id = накопительная сумма флагов по пользователю (каждая сессия получает свой номер).
+
+with_session_id as (
+
+    select
+
+        user_id,
+
+        user_event,
+
+        event_timestamp,
+
+        sum(
+
+            if(_prev_ts is null or dateDiff('second', _prev_ts, event_timestamp) > 3600, 1, 0)
+
+        ) over (partition by user_id order by event_timestamp rows between unbounded preceding and current row) as session_id
+
+    from base
+
+),
+
+-- В рамках (user_id, session_id) по порядку timestamp: prev_event и next_event; при отсутствии — 'start' и 'end' через coalesce.
+
+with_prev_next as (
+
+    select
+
+        user_id,
+
+        user_event,
+
+        event_timestamp,
+
+        session_id,
+
+        -- prev_event: lagInFrame с offset=1 и default='start'
+
+        lagInFrame(user_event, 1, 'start')
+
+            over (partition by user_id, session_id order by event_timestamp) as prev_event,
+
+        -- next_event: leadInFrame с offset=1 и default='end', кадр включает все последующие строки
+
+        leadInFrame(user_event, 1, 'end')
+
+            over (
+
+                partition by user_id, session_id
+
+                order by event_timestamp
+
+                rows between current row and unbounded following
+
+            ) as next_event
+
+    from with_session_id
+
+)
+
+select * from with_prev_next
+```
+
+Практически весь макрос отпечатался, замечательно! Вот в таком виде все и пошло в Clickhouse
+
+## Макрос для создания адаптивной таблицы с аргументами и динамически формируемыми столбиками + пайплайн таблиц с макросами
+
+Напоследок в данной статье я хочу сделать целый пайплайн из таблиц, созданных макросами! Что если я скажу вам, что можно на основе ==events_sessions==, которая создается макросом, сделать еще одну таблицу, которую *тоже будет создавать макрос*!
+Более того, в следующей таблице будут формироваться столбики динамически в зависимости от передаваемых данных! Жеска!
+
+В чем суть: я хочу сделать таблицу переходов из одного события в другое в рамках пользовательских сессий. Получится таблица переходов из одного события в другое у юзеров на основе таблицы ==events_sessions==.
+
+Это будет как макрос, но будет в dbt модели ==event_conversions==. На вход будет формироваться массив из уникальных значений столбца event_col + ситуации, когда следующее событие - *end*. Далее будет формироваться динамически таблица переходов. Столбцы будут формироваться динамически в зависимости от уникальных событий. Переходов to_start не будет по понятным причинам.
+
+### 1. Создание макроса
+
+Я сделал макрос по пути bigdata_poligon/airflow_dbt/dbt/poligon/macros/event_transitions.sql
+[(ссылка)](https://github.com/Byaha98/bigdata_poligon/blob/main/airflow_dbt/dbt/poligon/macros/event_transitions.sql), там в том числе в комментариях разобран код.
+
+Что делает макрос вкратце:
+
+Он берёт таблицу с событиями пользователей в сессиях (у каждой строки есть «предыдущее» и «текущее» событие) и строит таблицу переходов: из какого события сколько раз переходили в какое другое.
+
+На входе — таблица вроде events_sessions: для каждой строки есть, например:
+
+- prev_event — что было до этого (или 'start', если это первое событие в сессии),
+
+- user_event — что произошло сейчас (click, view, purchase и т.д.),
+
+- next_event — что будет после (или 'end', если это последнее событие в сессии).
+
+На выходе — одна таблица:
+
+- Строки — «откуда» шёл переход: start, click, view, purchase, end и т.д.
+
+- Столбцы — «куда»: to_click, to_view, to_purchase, to_end и т.д.
+
+- В ячейках — число: сколько раз был переход «из этой строки в этот столбец».
+
+Пример: строка from_event = 'click', столбец to_view = 5 значит: *«5 раз после click было view»*.
+
+
+**Как он это делает (три шага)
+
+1. Узнаём, какие события вообще бывают
+
+Запускаем запрос к той же таблице и получаем список уникальных значений «текущего» события плюс одно служебное — 'end'. Из этого списка убираем 'start' (для него столбец не нужен). Получается список «целевых» событий, по одному столбцу на каждое.
+
+2. Собираем все пары «откуда → куда»
+
+Из каждой строки входной таблицы берём:
+
+- переход prev_event → user_event (в т.ч. start → первое событие),
+
+- и для последних в сессии ещё переход user_event → 'end'.
+
+Всё это складываем в одну длинную таблицу с двумя колонками: from_event и to_event.
+
+3. Сворачиваем в широкую таблицу
+
+Группируем по *from_event* и для каждого «целевого» события из шага 1 считаем: сколько раз в этой группе to_event равно этому событию. Это число и попадает в соответствующий столбец to_click, to_view, to_end и т.д.
+
+С такой таблицей можно увидеть из какого события пользователи чаще всего переходят в какое (воронка, пути по сайту/приложению). Макрос просто автоматически строит такую таблицу переходов по данным сессий, без ручного перечисления всех событий — столбцы создаются по списку событий из данных.
+
+### 1. Создание DBT модели
+
+Далее я сделал DBT модель с этим макросом bigdata_poligon/airflow_dbt/dbt/poligon/models/dbt_jinja_guide/events_conversions.sql [(ссылка)](https://github.com/Byaha98/bigdata_poligon/blob/main/airflow_dbt/dbt/poligon/models/dbt_jinja_guide/events_conversions.sql). Опять же названия user_id или event колонок могут быть различными (динамическими) как и в прошлой модели.
+
+### 2. Создание DAG для пайплайна данных с DBT-макросными таблицами
+
+Я также сделал отдельный DAG bigdata_poligon/airflow_dbt/dags/dbt_jinja_guide_dag_2.py [(ссылка)](https://github.com/Byaha98/bigdata_poligon/blob/main/airflow_dbt/dags/dbt_jinja_guide_dag_2.py), где последовательно запускаются ==sessionize_events== и затем ==event_transitions== модели за счет команды **dbt run --select events_sessions+** (в dbt + после имени модели означает: «эта модель и все модели, которые от неё зависят, а event_transitions зависит от sessionize_events)
+
+![[Служебное. Вложения/dbt_jinja_guide_8.png]]
+
+
+
+
+А вот скрин итоговой таблицы, где можно отследить все переходы из события в событие:
+![[Служебное. Вложения/dbt_jinja_guide_9.png]]
+
+Для наглядности можно сравнить с прошлой таблицей:
+![[Служебное. Вложения/dbt_jinja_guide_7.png]]
+### 3. Обзор скомпилированного кода
+
+Чтобы посмотреть скомпилированный код макроса ==event_transitions== после запуска модели ==events_conversions==, можно зайти сюда: bigdata_poligon/airflow_dbt/dbt/poligon/target/compiled/poligon/models/dbt_jinja_guide/events_conversions.sql
+
+![[Служебное. Вложения/dbt_jinja_guide_10.png]]
+
+```
+with transitions as (
+
+    select
+
+        prev_event as from_event,
+
+        user_event as to_event
+
+    from `default`.`events_sessions`
+
+  
+
+    union all
+
+  
+
+    select
+
+        user_event as from_event,
+
+        'end' as to_event
+
+    from `default`.`events_sessions`
+
+    where next_event = 'end'
+
+)
+
+  
+
+select
+
+    from_event,
+
+    countIf(to_event = 'end') as to_end,
+
+    countIf(to_event = 'click') as to_click,
+
+    countIf(to_event = 'view') as to_view,
+
+    countIf(to_event = 'add_to_cart') as to_add_to_cart,
+
+    countIf(to_event = 'checkout') as to_checkout,
+
+    countIf(to_event = 'purchase') as to_purchase
+
+from transitions
+
+group by from_event
+
+order by from_event
+```
+
+Не то чтобы все части макроса “раскрылись”, но зато видно, как были обработаны кликхаузом финальные самые важные CTEшки без jinja синтаксиса.
+
+Вот такой получился вводный обзор на jinja макросы в DBT! Наверное, больше с упором в аналитику. Дата инженерные макросы буду раскрывать далее в будущем в отдельных статьях!
