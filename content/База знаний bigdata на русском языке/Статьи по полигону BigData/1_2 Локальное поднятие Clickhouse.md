@@ -14,7 +14,7 @@
 
 Где объясняется, что такое эти ваши Докеры, Бобры и прочие дабл ю эс эли:
 
-[[1 Часть Dbeaver Docker WSL Ubuntu]]
+[[1_1 Dbeaver Docker WSL Ubuntu]]
 
   
 

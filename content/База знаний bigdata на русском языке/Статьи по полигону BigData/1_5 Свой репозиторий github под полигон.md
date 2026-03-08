@@ -19,19 +19,19 @@ https://github.com/Byaha98/bigdata_poligon
 
 Как поставить WSL, docker и убунту в него и Dbeaver для работы с БД 
 
-[[1 Часть Dbeaver Docker WSL Ubuntu]]
+[[1_1 Dbeaver Docker WSL Ubuntu]]
 
 Как развернуть у себя Clickhouse локально: 
 
-[[2 Часть Локальное поднятие Clickhouse]]
+[[1_2 Локальное поднятие Clickhouse]]
 
 Как подготовить VS code и WSL к работе на полигоне
 
-[[3 Часть Подготовка WSL и VS code к полигону]]
+[[1_3 Подготовка WSL и VS code к полигону]]
 
 Большой гайд по развертыванию Airflow+DBT
 
-[[4 часть Разворачиваем Airflow 3.0.3 и DBT]]
+[[1_4 Разворачиваем Airflow 3.0.3 и DBT]]
 
 
 
