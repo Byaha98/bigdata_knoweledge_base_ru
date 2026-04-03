@@ -89,4 +89,10 @@ https://youtu.be/Gj0oSVmv7k4?si=M2RWg40mcF5W8X9t
 
 https://zasqlpython.ru
 
+# 7
+
+Там Заскуль Питона выложил курс на степик по пандасу для новичков. Будет полезно начинающим аналитикам!
+
+https://stepik.org/course/277517/promo
+
 
